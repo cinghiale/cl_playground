@@ -60,5 +60,40 @@ int main() {
     if (error != CL_SUCCESS) {
         throw std::runtime_error("clCreateKernel");
     }
+
+    error = clSetKernelArg(kernel, 0, sizeof(cl_mem), &cl_src1);
+    error |= clSetKernelArg(kernel, 1, sizeof(cl_mem), &cl_src2);
+    error |= clSetKernelArg(kernel, 2, sizeof(cl_mem), &cl_result);
+    error |= clSetKernelArg(kernel, 3, sizeof(size), &size);
+
+    if (error != CL_SUCCESS) {
+        throw std::runtime_error("clSetKernelArg");
+    }
+
+    size_t const local_ws = 512;
+    size_t const global_ws = 1234944;
+    error = clEnqueueNDRangeKernel(
+        queue, kernel, 1, nullptr, &global_ws, &local_ws, 0, nullptr, nullptr);
+
+    if (error != CL_SUCCESS) {
+        throw std::runtime_error("clEnqueueNDRangeKernel");
+    }
+
+    clEnqueueReadBuffer(
+        queue,
+        cl_result,
+        CL_TRUE,
+        0,
+        sizeof(float) * result->size(),
+        result,
+        0,
+        nullptr,
+        nullptr);
+
+    for (int i = 0; i < size; i++) {
+        if ((*result)[i] != (*src1)[i] + (*src2)[i]) {
+            cout << i << " - " << (*src1)[i] << " + " << (*src2)[i] << " = " << (*result)[i] << endl;
+        }
+    }
     return 0;
 }
